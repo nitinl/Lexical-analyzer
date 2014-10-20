@@ -1,4 +1,4 @@
-Python-lexical-analyzer
+Lexical-analyzer
 =======================
 
 Program identifies tokens in given code based on certain rules.
