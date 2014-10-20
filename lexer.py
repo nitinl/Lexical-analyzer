@@ -1,5 +1,6 @@
-##..... PPL Assignment by Nitin(2012A7PS038P) and Pavan(2012C6PS331P) .....##
-##..... Lexical Analyzer for Classification Domain Specific Language  .....##
+##..... Lexical Analyzer for Domain Specific Languages ..............................##
+##..... Rules can be easily customized to recognize tokens for desired language .....##
+##..... Program written in Python 2.7 ...............................................##
 
 import sys
 import re
@@ -7,7 +8,7 @@ from collections import defaultdict
 from os.path import exists
 import pdb
 
-# Rules for tokenizing
+# Regex rules for matching different types of tokens
 rules = [																														
 			(r'[\"][^\"]*?[\"]|[\'][^\']*?[\']',																		    					'LITERAL: STRING'),
 			(r'\-?\b\d*\.\d+\b',												    							 								'LITERAL: DOUBLE'),
@@ -28,41 +29,44 @@ rules = [
 			(r'(?<=\s)[a-zA-Z][a-zA-Z0-9_]*',                                                            										'IDENTIFIERS')
 ]
 
-def lexicalAnalyzer(code, outputfile):
+# Function to identify tokens in given code and store output in outputfile
+def lexicalAnalyzer(code, outputFile):
 
 	# removing multi-line comments
-	multiLineComments = re.compile('\/\*(.|\s)*?\*\/')
+	multiLineComments = re.compile('\/\*(.|\s)*?\*\/') 						# regex for matching C style multiline comments
 	while multiLineComments.search(code) is not None:
-		mlc = multiLineComments.search(code)
+		mlc = multiLineComments.search(code)		   						# mlc contains first occurence of multiline comment in the code
 		linesInComment = 0
 		if mlc != None:
 			mlc = mlc.group()
-			linesInComment = len(re.findall('\n',mlc))
-		code = multiLineComments.sub(" %s"%('\n'*linesInComment), code, 1)
+			linesInComment = len(re.findall('\n',mlc)) 						# finding no. of lines spanned by multiline comment mlc
+		code = multiLineComments.sub(" %s"%('\n'*linesInComment), code, 1) 	# replacing the multiline comment by its line span
 
 	# removing single-line comments
-	singleLineComments = re.compile('\/\/(.*)')
-	code = singleLineComments.sub(' ', code)
+	singleLineComments = re.compile('\/\/(.*)')								# regex for matching C style single line comments
+	code = singleLineComments.sub(' ', code) 								# replacing all single line comments with a whitespace
 
-	tokens = defaultdict(lambda: defaultdict(list)) 	# tokens is a dictionary(token type) of a dictionary(line number) of list(token values)
+	tokens = defaultdict(lambda: defaultdict(list)) 						# tokens[tokenType][lineNumber] is a list of tokens of tokenType in lineNumber
 	# getting all tokens in every line
-	lines = code.split('\n')
-	currentLine = 1
+	lines = code.split('\n')												# lines is a list of lines in the code
+	currentLine = 1															# starting with line number 1
 	for line in lines:
-		linecode = ' ' + line
+		linecode = ' ' + line 												# adding a whitespace before every line for easily matching identifiers
 		for rule, tokenType in rules:
-			tokens[tokenType][currentLine] = re.findall(rule, linecode)
+			tokens[tokenType][currentLine] = re.findall(rule, linecode)		# for every rule in rules list(line 12), storing all matches in dictionary
 			substitute = re.compile(rule)
-			linecode = substitute.sub(' ', linecode)
+			linecode = substitute.sub(' ', linecode)						# replacing the matches with a whitespace in the code(line code)
 		linecode = linecode.strip()
-		if linecode != '':
-			tokens['Lexical Errors'][currentLine] = [linecode]
-			# pdb.set_trace()
+		if linecode != '':													# if linecode is not empty after stripping whitespace, the
+			tokens['Lexical Errors'][currentLine] = [linecode]				# remaining content has not matched any rule of the language and is a lexical error
 		currentLine = currentLine + 1
 
-	p = re.compile(r'\.')
-	outputfile = p.sub('Output.',outputfile)
-	output = open(outputfile, 'w')
+	
+	output = open(outputFile, 'w')
+	# Warning: output file opened in 'w' mode, will overwrite any file with same name in working directory
+
+
+	# writing all tokens category wise arranged by line no. into the output file
 	for rule, tokenType in rules:
 		output.write('%r:\n' % tokenType)
 		pos = output.tell()
@@ -72,6 +76,7 @@ def lexicalAnalyzer(code, outputfile):
 		if pos == output.tell():
 			output.write("\tNONE\n")
 
+	# writing lexical errors to output file
 	output.write('LEXICAL ERRORS:\n')
 	pos = output.tell()
 	for i in range(1, currentLine):
@@ -99,7 +104,10 @@ def main():
 		fileHandle = open(filename)	# code contains file to be analyzed
 		code = fileHandle.read() # copying contents of file
 		fileHandle.close()	# closing file
-		lexicalAnalyzer(code, filename)
+		outputFile = raw_input('Enter name of output file:')
+		print "Now tokenizing code"
+		lexicalAnalyzer(code, outputFile)
+		print "Results of lexical analysis stored in %s" % outputFile
 		print "Enter one more filename to be analyzed or 0 to exit"
 		filename = raw_input("> ")
 
